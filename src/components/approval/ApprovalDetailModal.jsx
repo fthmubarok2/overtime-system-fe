@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { getOvertimeDetail } from "@/services/overtimeRequest"
+import { getApprovalDetail } from "@/services/overtimeApproval"
 import { getStatusBadge } from "@/lib/statusBadge"
-import { CheckCircle, XCircle, Clock, Loader2 } from "lucide-react"
 import { formatDateToHHBBTTTT } from "@/utils/formatDate"
+import { CheckCircle, XCircle, Clock, Loader2 } from "lucide-react"
 
-const DetailRequestModal = ({ open, onOpenChange, request }) => {
+const ApprovalDetailModal = ({ open, onOpenChange, request }) => {
   const [detailData, setDetailData] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -21,8 +21,8 @@ const DetailRequestModal = ({ open, onOpenChange, request }) => {
   const fetchDetails = async () => {
     try {
       setIsLoading(true)
-      const result = await getOvertimeDetail(request.id)
-      setDetailData(result.data)
+      const result = await getApprovalDetail(request.id)
+      setDetailData(result)
     } catch (err) {
       console.error("Gagal ambil detail:", err)
     } finally {
@@ -186,4 +186,4 @@ const DetailRequestModal = ({ open, onOpenChange, request }) => {
   )
 }
 
-export default DetailRequestModal
+export default ApprovalDetailModal

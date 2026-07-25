@@ -14,8 +14,8 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const menuItems = [
     { path: "/dashboard", label: "Dashboard", roles: ["*"], icon: LayoutDashboard },
-    { path: "/requests", label: "My Requests", roles: ["REQUESTER"], icon: FileText },
-    { path: "/approve", label: "Approval Queue", roles: ["VALIDATOR", "APPROVER"], icon: CheckCircle },
+    { path: "/requests", label: "Overtime Request", roles: ["REQUESTER"], icon: FileText },
+    { path: "/approve", label: "Overtime Approval", roles: ["VALIDATOR", "APPROVER"], icon: CheckCircle },
     { path: "/admin", label: "User Management", roles: ["ADMIN"], icon: Users },
   ]
 

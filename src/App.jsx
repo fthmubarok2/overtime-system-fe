@@ -5,8 +5,8 @@ import AuthLayout from "@/layouts/AuthLayout"
 import DashboardLayout from "@/layouts/DashboardLayout"
 import LoginPage from "@/pages/LoginPage"
 import DashboardPage from "@/pages/DashboardPage"
-import MyRequestsPage from "@/pages/MyRequestsPage"
-import ApprovePage from "@/pages/ApprovePage"
+import OvertimeRequestPage from "@/pages/OvertimeRequestPage"
+import OvertimeApprovalPage from "@/pages/OvertimeApprovalPage"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import { Toaster } from "sonner"
 
@@ -28,8 +28,8 @@ const App = () => {
         <Route element={<ProtectedRoute />}>
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/requests" element={<MyRequestsPage />} />
-            <Route path="/approve" element={<ApprovePage />} />
+            <Route path="/requests" element={<OvertimeRequestPage />} />
+            <Route path="/approve" element={<OvertimeApprovalPage />} />
           </Route>
         </Route>
       </Routes>
