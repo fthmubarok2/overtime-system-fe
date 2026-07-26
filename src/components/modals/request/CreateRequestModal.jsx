@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, X } from "lucide-react"
-import { createOvertimeRequest } from "@/services/overtimeRequest"
+import { createOvertimeRequest } from "@/services/request"
 import { toast } from "sonner"
 
 const CreateRequestModal = ({ open, onOpenChange, onSuccess }) => {

@@ -1,4 +1,5 @@
 import axios from "axios"
+import { toast } from "sonner"
 
 const api = axios.create({
   baseURL: "http://localhost:8080/api",
@@ -21,7 +22,15 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem("token")
       localStorage.removeItem("user")
-      window.location.href = "/"
+      
+      toast.error("Sesi anda telah berakhir, silahkan login kembali", {
+        duration: 4000,
+        position: "top-right",
+      })
+
+      if (window.location.pathname !== "/") {
+        window.location.href = "/"
+      }
     }
     return Promise.reject(error)
   }

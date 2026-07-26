@@ -10,10 +10,9 @@ import {
   getPendingRequests,
   getPartiallyApprovedRequests,
   processApproval,
-} from "@/services/overtimeApproval"
-import ApprovalDetailModal from "@/components/approval/ApprovalDetailModal"
-import ApproveModal from "@/components/approval/ApproveModal"
-import RejectModal from "@/components/approval/RejectModal"
+} from "@/services/approval"
+import DetailRequestModal from "@/components/modals/request/DetailRequestModal"
+import ActionApprovalModal from "@/components/modals/approval/ActionApprovalModal"
 import StatsCard from "@/components/ui/StatsCard"
 
 const OvertimeApprovalPage = () => {
@@ -23,10 +22,13 @@ const OvertimeApprovalPage = () => {
 
   const user = useAuthStore((state) => state.user)
 
-  // Modal state
-  const [detailModal, setDetailModal] = useState({ open: false, request: null })
-  const [approveModal, setApproveModal] = useState({ open: false, request: null })
-  const [rejectModal, setRejectModal] = useState({ open: false, request: null })
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [selectedRequest, setSelectedRequest] = useState(null)
+  const [actionModal, setActionModal] = useState({ 
+    open: false, 
+    type: "approve", 
+    request: null 
+  })
 
   useEffect(() => {
     fetchRequest()
@@ -64,27 +66,26 @@ const OvertimeApprovalPage = () => {
     }
   }
 
-  const handleApprove = async (request, note) => {
-    try {
-      await processApproval(request.id, { decision: "APPROVE", note: note || undefined })
-      toast.success("Request berhasil di-approve!")
-      setApproveModal({ open: false, request: null })
-      setDetailModal({ open: false, request: null })
-      fetchRequest()
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Gagal approve request")
-    }
+  const handleRowClick = (item) => {
+    setSelectedRequest(item)
+    setIsDetailOpen(true)
   }
 
-  const handleReject = async (request, note) => {
+  const handleActionConfirm = async (request, payload) => {
     try {
-      await processApproval(request.id, { decision: "REJECT", note })
-      toast.success("Request berhasil ditolak!")
-      setRejectModal({ open: false, request: null })
-      setDetailModal({ open: false, request: null })
+      await processApproval(request.id, { 
+        decision: payload.status, 
+        note: payload.note || undefined 
+      })
+      toast.success(
+        payload.status === "APPROVED" 
+          ? "Request berhasil di-approve!" 
+          : "Request berhasil ditolak!"
+      )
+      setActionModal({ open: false, type: "approve", request: null })
       fetchRequest()
     } catch (err) {
-      toast.error(err.response?.data?.message || "Gagal reject request")
+      toast.error(err.response?.data?.message || "Gagal memproses approval")
     }
   }
 
@@ -172,7 +173,7 @@ const OvertimeApprovalPage = () => {
                     <TableRow
                       key={item.id}
                       className="cursor-pointer hover:bg-gray-50"
-                      onClick={() => setDetailModal({ open: true, request: item })}
+                      onClick={() => handleRowClick(item)}
                     >
                       <TableCell className="text-center">{item.requesterName}</TableCell>
                       <TableCell className="text-center">{item.departmentName}</TableCell>
@@ -187,7 +188,7 @@ const OvertimeApprovalPage = () => {
                             variant="default"
                             size="sm"
                             className="bg-emerald-500 hover:bg-emerald-600 text-white h-8 px-3"
-                            onClick={() => setApproveModal({ open: true, request: item })}
+                            onClick={() => setActionModal({ open: true, type: "approve", request: item })}
                           >
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Approve
@@ -196,7 +197,7 @@ const OvertimeApprovalPage = () => {
                             variant="destructive"
                             size="sm"
                             className="h-8 px-3"
-                            onClick={() => setRejectModal({ open: true, request: item })}
+                            onClick={() => setActionModal({ open: true, type: "reject", request: item })}
                           >
                             <XCircle className="h-3 w-3 mr-1" />
                             Reject
@@ -212,31 +213,22 @@ const OvertimeApprovalPage = () => {
         </Card>
       )}
 
-      {/* Modals */}
-      <ApprovalDetailModal
-        open={detailModal.open}
-        onOpenChange={(open) => {
-          if (!open) setDetailModal({ open: false, request: null })
-        }}
-        request={detailModal.request}
+      {/* MODALS */}
+      <DetailRequestModal
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+        request={selectedRequest}
+        source="approver"   // ← INI YANG DIMAKSUD!
       />
 
-      <ApproveModal
-        open={approveModal.open}
+      <ActionApprovalModal
+        open={actionModal.open}
         onOpenChange={(open) => {
-          if (!open) setApproveModal({ open: false, request: null })
+          if (!open) setActionModal({ open: false, type: "approve", request: null })
         }}
-        request={approveModal.request}
-        onApprove={handleApprove}
-      />
-
-      <RejectModal
-        open={rejectModal.open}
-        onOpenChange={(open) => {
-          if (!open) setRejectModal({ open: false, request: null })
-        }}
-        request={rejectModal.request}
-        onReject={handleReject}
+        request={actionModal.request}
+        type={actionModal.type}
+        onConfirm={handleActionConfirm}
       />
     </div>
   )

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import useAuthStore from "@/store/authStore"
 import { login } from "@/services/auth"
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Eye, EyeOff } from "lucide-react"
+import { toast } from "sonner"
 
 const LoginPage = () => {
   const [username, setUsername] = useState("")
@@ -15,6 +16,25 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
   const setAuth = useAuthStore((state) => state.setAuth)
+  const sessionExpired = useAuthStore((state) => state.sessionExpired)
+  const setSessionExpired = useAuthStore((state) => state.setSessionExpired)
+  const toastId = useRef(null)
+
+  useEffect(() => {
+    if (sessionExpired && !toastId.current) {
+      toastId.current = toast.error("Sesi anda telah berakhir, silakan login kembali", {
+        duration: 4000,
+        onAutoClose: () => { toastId.current = null },
+      })
+      setSessionExpired(false)
+      setTimeout(() => {
+        if (toastId.current) {
+          toast.dismiss(toastId.current)
+          toastId.current = null
+        }
+      }, 4500)
+    }
+  }, [sessionExpired])
 
   const handleSubmit = async (e) => {
     e.preventDefault()

@@ -3,6 +3,7 @@ import { create } from "zustand"
 const useAuthStore = create((set) => ({
   token: localStorage.getItem("token"),
   user: JSON.parse(localStorage.getItem("user") || "null"),
+  sessionExpired: false,
 
   checkAuth: () => {
     const token = localStorage.getItem("token")
@@ -22,10 +23,12 @@ const useAuthStore = create((set) => ({
     set({ token, user })
   },
 
+  setSessionExpired: (value) => set({ sessionExpired: value }),
+
   logout: () => {
     localStorage.removeItem("token")
     localStorage.removeItem("user")
-    set({ token: null, user: null })
+    set({ token: null, user: null, sessionExpired: false })
   },
 }))
 

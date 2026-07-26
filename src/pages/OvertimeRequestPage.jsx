@@ -2,11 +2,12 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Plus, Trash2, Loader2, Clock, CheckCircle, XCircle } from "lucide-react"
-import { getMyrequest, cancelOvertimeRequest } from "@/services/overtimeRequest"
+import { getMyrequest, cancelOvertimeRequest } from "@/services/request"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getStatusBadge } from "@/lib/statusBadge"
-import CreateRequestModal from "@/components/request/CreateRequestModal"
-import DetailRequestModal from "@/components/request/DetailRequestModal"
+import CreateRequestModal from "@/components/modals/request/CreateRequestModal"
+import DetailRequestModal from "@/components/modals/request/DetailRequestModal"
+import ActionModal from "@/components/modals/common/ActionModal"
 import StatsCard from "@/components/ui/StatsCard"
 import { toast } from "sonner"
 
@@ -17,6 +18,11 @@ const OvertimeRequestPage = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [selectedRequest, setSelectedRequest] = useState(null)
+
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    request: null,
+  })
 
   useEffect(() => {
     fetchRequest()
@@ -42,13 +48,17 @@ const OvertimeRequestPage = () => {
     setIsDetailOpen(true)
   }
 
-  const handleDelete = async (e, item) => {
+  const handleDeleteClick = (e, item) => {
     e.stopPropagation()
-    if (!confirm(`Yakin batalkan request "${item.reason}"?`)) return
+    setDeleteModal({ open: true, request: item })
+  }
 
+  const handleConfirmDelete = async () => {
+    const item = deleteModal.request
     try {
       await cancelOvertimeRequest(item.id)
       toast.success("Request berhasil dibatalkan!")
+      setDeleteModal({ open: false, request: null })
       fetchRequest()
     } catch (err) {
       const message = err.response?.data?.message || "Gagal membatalkan request"
@@ -70,7 +80,6 @@ const OvertimeRequestPage = () => {
         </Button>
       </div>
 
-      {/* Stats Cards */}
       <StatsCard
         isLoading={isLoading}
         stats={[
@@ -93,18 +102,6 @@ const OvertimeRequestPage = () => {
             bgColor: "bg-red-50",
           },
         ]}
-      />
-
-      <CreateRequestModal
-        open={isCreateOpen}
-        onOpenChange={setIsCreateOpen}
-        onSuccess={fetchRequest}
-      />
-
-      <DetailRequestModal
-        open={isDetailOpen}
-        onOpenChange={setIsDetailOpen}
-        request={selectedRequest}
       />
 
       {isLoading ? (
@@ -159,10 +156,11 @@ const OvertimeRequestPage = () => {
                           <div className="flex justify-center">
                             <Button
                               variant="destructive"
-                              size="icon-sm"
-                              onClick={(e) => handleDelete(e, item)}
+                              size="sm"
+                              onClick={(e) => handleDeleteClick(e, item)}
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Cancel
                             </Button>
                           </div>
                         )}
@@ -175,6 +173,28 @@ const OvertimeRequestPage = () => {
           </CardContent>
         </Card>
       )}
+
+      <CreateRequestModal
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onSuccess={fetchRequest}
+      />
+
+      <DetailRequestModal
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+        request={selectedRequest}
+        source="requester"
+      />
+
+      <ActionModal
+        open={deleteModal.open}
+        onOpenChange={(open) => setDeleteModal({ ...deleteModal, open })}
+        actionType="cancel"
+        item={deleteModal.request}
+        onConfirm={handleConfirmDelete}
+        isLoading={isLoading}
+      />
     </div>
   )
 }

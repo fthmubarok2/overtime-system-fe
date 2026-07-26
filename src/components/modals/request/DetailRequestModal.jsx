@@ -1,12 +1,18 @@
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { getOvertimeDetail } from "@/services/overtimeRequest"
+import { getOvertimeDetail } from "@/services/request"
+import { getApprovalDetail } from "@/services/approval"
 import { getStatusBadge } from "@/lib/statusBadge"
-import { CheckCircle, XCircle, Clock, Loader2 } from "lucide-react"
 import { formatDateToHHBBTTTT } from "@/utils/formatDate"
+import { CheckCircle, XCircle, Clock, Loader2 } from "lucide-react"
 
-const DetailRequestModal = ({ open, onOpenChange, request }) => {
+const DetailRequestModal = ({ 
+  open, 
+  onOpenChange, 
+  request,
+  source = "requester" // "requester" | "approver"
+}) => {
   const [detailData, setDetailData] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -16,13 +22,20 @@ const DetailRequestModal = ({ open, onOpenChange, request }) => {
     } else {
       setDetailData(null)
     }
-  }, [open, request?.id])
+  }, [open, request?.id, source])
 
   const fetchDetails = async () => {
     try {
       setIsLoading(true)
-      const result = await getOvertimeDetail(request.id)
-      setDetailData(result.data)
+      let result
+
+      if (source === "requester") {
+        result = await getOvertimeDetail(request.id)
+        setDetailData(result.data)
+      } else if (source === "approver") {
+        result = await getApprovalDetail(request.id)
+        setDetailData(result)
+      }
     } catch (err) {
       console.error("Gagal ambil detail:", err)
     } finally {
@@ -122,7 +135,7 @@ const DetailRequestModal = ({ open, onOpenChange, request }) => {
                           <span className="font-medium">{approval.approverName}</span>
                           {approval.note && (
                             <div className="text-xs text-muted-foreground mt-1">
-                              &quot;{approval.note}&quot;
+                              "{approval.note}"
                             </div>
                           )}
                         </div>

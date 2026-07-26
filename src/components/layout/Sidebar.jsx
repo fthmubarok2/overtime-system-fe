@@ -1,15 +1,20 @@
+import { useState } from "react"
 import { NavLink, useNavigate } from "react-router-dom"
 import { LayoutDashboard, FileText, CheckCircle, LogOut, Users, X } from "lucide-react"
 import useAuthStore from "@/store/authStore"
 import { cn } from "@/lib/utils"
+import ActionModal from "@/components/modals/common/ActionModal"
 
 const Sidebar = ({ isOpen, onClose }) => {
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
 
+  const [logoutModal, setLogoutModal] = useState({ open: false })
+
   const handleLogout = () => {
     logout()
     navigate("/")
+    setLogoutModal({ open: false })
   }
 
   const menuItems = [
@@ -90,7 +95,7 @@ const Sidebar = ({ isOpen, onClose }) => {
               </p>
             </div>
             <button
-              onClick={handleLogout}
+              onClick={() => setLogoutModal({ open: true })}
               className="p-2 text-muted-foreground hover:text-destructive transition-colors"
             >
               <LogOut className="h-4 w-4" />
@@ -98,6 +103,14 @@ const Sidebar = ({ isOpen, onClose }) => {
           </div>
         </div>
       </aside>
+
+      {/* Logout Modal */}
+      <ActionModal
+        open={logoutModal.open}
+        onOpenChange={(open) => setLogoutModal({ open })}
+        actionType="logout"
+        onConfirm={handleLogout}
+      />
     </>
   )
 }
