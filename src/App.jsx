@@ -7,6 +7,7 @@ import LoginPage from "@/pages/LoginPage"
 import DashboardPage from "@/pages/DashboardPage"
 import OvertimeRequestPage from "@/pages/OvertimeRequestPage"
 import OvertimeApprovalPage from "@/pages/OvertimeApprovalPage"
+import UserManagementPage from "./pages/UserManagementPage"
 import NotFoundPage from "@/pages/NotFoundPage"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import { Toaster } from "sonner"
@@ -20,8 +21,9 @@ const App = () => {
 
   return (
     <BrowserRouter>
-    <Toaster position="top-right" />
+      <Toaster position="top-right" />
       <Routes>
+        {/* Public */}
         <Route element={<AuthLayout />}>
           <Route path="/" element={<LoginPage />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
@@ -30,16 +32,31 @@ const App = () => {
         <Route element={<ProtectedRoute />}>
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/requests" element={
-              <ProtectedRoute allowedRoles={["REQUESTER"]}>
-                <OvertimeRequestPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/approve" element={
-              <ProtectedRoute allowedRoles={["VALIDATOR", "APPROVER"]}>
-                <OvertimeApprovalPage />
-              </ProtectedRoute>
-            } />
+            
+            <Route 
+              path="/requests" 
+              element={
+                <ProtectedRoute allowedRoles={["REQUESTER"]}>
+                  <OvertimeRequestPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/approve" 
+              element={
+                <ProtectedRoute allowedRoles={["VALIDATOR", "APPROVER"]}>
+                  <OvertimeApprovalPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute allowedRoles={["ADMIN"]}>
+                  <UserManagementPage />
+                </ProtectedRoute>
+              } 
+            />
           </Route>
         </Route>
 

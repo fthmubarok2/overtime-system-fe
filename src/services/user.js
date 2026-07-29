@@ -26,6 +26,6 @@ export const deleteUser = async (id) => {
 }
 
 export const restoreUser = async (id) => {
-  const response = await api.post(`/users/${id}`)
+  const response = await api.post(`/users/${id}/restore`)
   return response.data
 }

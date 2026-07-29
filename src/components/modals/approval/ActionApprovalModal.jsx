@@ -24,7 +24,7 @@ const ApprovalModal = ({
 
   const handleConfirm = () => {
     const payload = {
-      status: isApprove ? "APPROVED" : "REJECTED",
+      status: isApprove ? "APPROVE" : "REJECT",
       note: note || undefined
     }
     onConfirm(request, payload)

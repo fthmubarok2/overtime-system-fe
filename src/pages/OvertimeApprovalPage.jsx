@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { CheckCircle, XCircle, Clock, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -14,79 +14,85 @@ import {
 import DetailRequestModal from "@/components/modals/request/DetailRequestModal"
 import ActionApprovalModal from "@/components/modals/approval/ActionApprovalModal"
 import StatsCard from "@/components/ui/StatsCard"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+
+const fetchApprovalRequests = async () => {
+  const user = useAuthStore.getState().user
+  const roleNames = user?.roleNames || []
+  const isValidator = roleNames.includes("VALIDATOR")
+  const isApprover = roleNames.includes("APPROVER")
+
+  let data = []
+  if (isValidator && isApprover) {
+    const [pending, partial] = await Promise.all([
+      getPendingRequests(),
+      getPartiallyApprovedRequests(),
+    ])
+    data = [...(pending || []), ...(partial || [])]
+  } else if (isValidator) {
+    data = await getPendingRequests()
+  } else if (isApprover) {
+    data = await getPartiallyApprovedRequests()
+  }
+  return data || []
+}
 
 const OvertimeApprovalPage = () => {
-  const [requests, setRequests] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(null)
-
+  const queryClient = useQueryClient()
   const user = useAuthStore((state) => state.user)
 
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [selectedRequest, setSelectedRequest] = useState(null)
-  const [actionModal, setActionModal] = useState({ 
-    open: false, 
-    type: "approve", 
-    request: null 
+  const [actionModal, setActionModal] = useState({
+    open: false,
+    type: "approve",
+    request: null,
   })
 
-  useEffect(() => {
-    fetchRequest()
-  }, [])
+  const {
+    data: requests = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["approval-requests", user?.roleNames],
+    queryFn: fetchApprovalRequests,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false,
+    enabled: !!user,
+  })
 
-  const fetchRequest = async () => {
-    const roleNames = user?.roleNames || []
-    const isValidator = roleNames.includes("VALIDATOR")
-    const isApprover = roleNames.includes("APPROVER")
-
-    try {
-      setIsLoading(true)
-      let data = []
-
-      if (isValidator && isApprover) {
-        const [pending, partial] = await Promise.all([
-          getPendingRequests(),
-          getPartiallyApprovedRequests(),
-        ])
-        data = [...(pending || []), ...(partial || [])]
-      } else if (isValidator) {
-        data = await getPendingRequests()
-      } else if (isApprover) {
-        data = await getPartiallyApprovedRequests()
-      } else {
-        setError("Akses ditolak")
-        setIsLoading(false)
-        return
-      }
-      setRequests(data || [])
-    } catch (err) {
-      setError("Gagal memuat data")
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const approvalMutation = useMutation({
+    mutationFn: ({ id, payload }) => processApproval(id, payload),
+    onSuccess: (_, variables) => {
+      toast.success(
+        variables.payload.decision === "APPROVE"
+          ? "Request berhasil di-approve!"
+          : "Request berhasil ditolak!"
+      )
+      setActionModal({ open: false, type: "approve", request: null })
+      queryClient.invalidateQueries({ queryKey: ["approval-requests"] })
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || "Gagal memproses approval")
+    },
+  })
 
   const handleRowClick = (item) => {
     setSelectedRequest(item)
     setIsDetailOpen(true)
   }
 
-  const handleActionConfirm = async (request, payload) => {
-    try {
-      await processApproval(request.id, { 
-        decision: payload.status, 
-        note: payload.note || undefined 
-      })
-      toast.success(
-        payload.status === "APPROVED" 
-          ? "Request berhasil di-approve!" 
-          : "Request berhasil ditolak!"
-      )
-      setActionModal({ open: false, type: "approve", request: null })
-      fetchRequest()
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Gagal memproses approval")
-    }
+  const handleActionConfirm = (request, payload) => {
+    approvalMutation.mutate({
+      id: request.id,
+      payload: {
+        decision: payload.status,
+        note: payload.note || undefined,
+      },
+    })
   }
 
   const pendingCount = requests.filter(
@@ -94,6 +100,20 @@ const OvertimeApprovalPage = () => {
   ).length
   const approvedCount = requests.filter((r) => r.status === "APPROVED").length
   const rejectedCount = requests.filter((r) => r.status === "REJECTED").length
+
+  const roleNames = user?.roleNames || []
+  const isValidator = roleNames.includes("VALIDATOR")
+  const isApprover = roleNames.includes("APPROVER")
+
+  if (!isValidator && !isApprover) {
+    return (
+      <Card>
+        <CardContent className="py-16 text-center">
+          <p className="text-muted-foreground">Anda tidak memiliki akses ke halaman ini.</p>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-4">
@@ -138,11 +158,11 @@ const OvertimeApprovalPage = () => {
             </div>
           </CardContent>
         </Card>
-      ) : error ? (
+      ) : isError ? (
         <Card>
           <CardContent className="py-16 text-center">
-            <p className="text-muted-foreground">{error}</p>
-            <Button onClick={fetchRequest} className="mt-4">
+            <p className="text-muted-foreground">{error?.message || "Gagal memuat data"}</p>
+            <Button onClick={() => refetch()} className="mt-4">
               Coba Lagi
             </Button>
           </CardContent>
@@ -188,7 +208,14 @@ const OvertimeApprovalPage = () => {
                             variant="default"
                             size="sm"
                             className="bg-emerald-500 hover:bg-emerald-600 text-white h-8 px-3"
-                            onClick={() => setActionModal({ open: true, type: "approve", request: item })}
+                            onClick={() =>
+                              setActionModal({
+                                open: true,
+                                type: "approve",
+                                request: item,
+                              })
+                            }
+                            disabled={approvalMutation.isPending}
                           >
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Approve
@@ -197,7 +224,14 @@ const OvertimeApprovalPage = () => {
                             variant="destructive"
                             size="sm"
                             className="h-8 px-3"
-                            onClick={() => setActionModal({ open: true, type: "reject", request: item })}
+                            onClick={() =>
+                              setActionModal({
+                                open: true,
+                                type: "reject",
+                                request: item,
+                              })
+                            }
+                            disabled={approvalMutation.isPending}
                           >
                             <XCircle className="h-3 w-3 mr-1" />
                             Reject
@@ -218,7 +252,7 @@ const OvertimeApprovalPage = () => {
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}
         request={selectedRequest}
-        source="approver"   // ← INI YANG DIMAKSUD!
+        source="approver"
       />
 
       <ActionApprovalModal
@@ -229,6 +263,7 @@ const OvertimeApprovalPage = () => {
         request={actionModal.request}
         type={actionModal.type}
         onConfirm={handleActionConfirm}
+        isLoading={approvalMutation.isPending}
       />
     </div>
   )

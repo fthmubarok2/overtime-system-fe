@@ -6,42 +6,36 @@ import { getApprovalDetail } from "@/services/approval"
 import { getStatusBadge } from "@/lib/statusBadge"
 import { formatDateToHHBBTTTT } from "@/utils/formatDate"
 import { CheckCircle, XCircle, Clock, Loader2 } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
 
-const DetailRequestModal = ({ 
-  open, 
-  onOpenChange, 
+const DetailRequestModal = ({
+  open,
+  onOpenChange,
   request,
-  source = "requester" // "requester" | "approver"
+  source = "requester", // "requester" | "approver"
 }) => {
-  const [detailData, setDetailData] = useState(null)
-  const [isLoading, setIsLoading] = useState(false)
-
-  useEffect(() => {
-    if (open && request?.id) {
-      fetchDetails()
-    } else {
-      setDetailData(null)
+  const fetchDetail = async () => {
+    if (source === "requester") {
+      const result = await getOvertimeDetail(request.id)
+      return result.data
+    } else if (source === "approver") {
+      const result = await getApprovalDetail(request.id)
+      return result
     }
-  }, [open, request?.id, source])
-
-  const fetchDetails = async () => {
-    try {
-      setIsLoading(true)
-      let result
-
-      if (source === "requester") {
-        result = await getOvertimeDetail(request.id)
-        setDetailData(result.data)
-      } else if (source === "approver") {
-        result = await getApprovalDetail(request.id)
-        setDetailData(result)
-      }
-    } catch (err) {
-      console.error("Gagal ambil detail:", err)
-    } finally {
-      setIsLoading(false)
-    }
+    return null
   }
+
+  const {
+    data: detailData,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["detail-request", request?.id, source],
+    queryFn: fetchDetail,
+    enabled: !!open && !!request?.id,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
+  })
 
   if (!request) return null
 
@@ -99,6 +93,10 @@ const DetailRequestModal = ({
             <div className="flex flex-col items-center justify-center py-12 space-y-4">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               <p className="text-muted-foreground">Memuat detail...</p>
+            </div>
+          ) : isError ? (
+            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+              <p className="text-red-500">Gagal memuat detail</p>
             </div>
           ) : detailData ? (
             <>

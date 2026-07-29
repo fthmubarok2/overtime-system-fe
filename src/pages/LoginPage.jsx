@@ -46,8 +46,9 @@ const LoginPage = () => {
       const { token, name, roleNames } = result.data
       setAuth(token, { name, roleNames })
       navigate("/dashboard")
-    } catch {
-      setError("Username atau password salah")
+    } catch (err) {
+      const message = err.response?.data?.message || "Username atau password salah"
+      setError(message)
     } finally {
       setIsLoading(false)
     }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Plus, Trash2, Loader2, Clock, CheckCircle, XCircle } from "lucide-react"
@@ -10,11 +10,15 @@ import DetailRequestModal from "@/components/modals/request/DetailRequestModal"
 import ActionModal from "@/components/modals/common/ActionModal"
 import StatsCard from "@/components/ui/StatsCard"
 import { toast } from "sonner"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+
+const fetchRequests = async () => {
+  const result = await getMyrequest()
+  return result.data || []
+}
 
 const OvertimeRequestPage = () => {
-  const [request, setRequest] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const queryClient = useQueryClient()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [selectedRequest, setSelectedRequest] = useState(null)
@@ -24,24 +28,32 @@ const OvertimeRequestPage = () => {
     request: null,
   })
 
-  useEffect(() => {
-    fetchRequest()
-  }, [])
+  const {
+    data: requests = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["requests"],
+    queryFn: fetchRequests,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false,
+  })
 
-  const fetchRequest = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const result = await getMyrequest()
-      setRequest(result.data || [])
-    } catch (err) {
-      console.error("Error fetching requests:", err)
-      setError("gagal memuat data")
-      toast.error("Gagal memuat data request")
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const cancelMutation = useMutation({
+    mutationFn: cancelOvertimeRequest,
+    onSuccess: () => {
+      toast.success("Request berhasil dibatalkan!")
+      setDeleteModal({ open: false, request: null })
+      queryClient.invalidateQueries({ queryKey: ["requests"] })
+    },
+    onError: (err) => {
+      const message = err.response?.data?.message || "Gagal membatalkan request"
+      toast.error(message)
+    },
+  })
 
   const handleRowClick = (item) => {
     setSelectedRequest(item)
@@ -53,21 +65,22 @@ const OvertimeRequestPage = () => {
     setDeleteModal({ open: true, request: item })
   }
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = () => {
     const item = deleteModal.request
-    try {
-      await cancelOvertimeRequest(item.id)
-      toast.success("Request berhasil dibatalkan!")
-      setDeleteModal({ open: false, request: null })
-      fetchRequest()
-    } catch (err) {
-      const message = err.response?.data?.message || "Gagal membatalkan request"
-      toast.error(message)
-    }
+    cancelMutation.mutate(item.id)
   }
+
+  const pendingCount = requests.filter(
+    (r) => r.status === "PENDING" || r.status === "PARTIALLY_APPROVED"
+  ).length
+  const approvedCount = requests.filter((r) => r.status === "APPROVED").length
+  const rejectedCount = requests.filter(
+    (r) => r.status === "REJECTED" || r.status === "CANCELLED"
+  ).length
 
   return (
     <div className="max-w-5xl mx-auto space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-lg sm:text-2xl font-bold">My Overtime Requests</h2>
@@ -80,30 +93,32 @@ const OvertimeRequestPage = () => {
         </Button>
       </div>
 
+      {/* Stats Cards */}
       <StatsCard
         isLoading={isLoading}
         stats={[
           {
             icon: <Clock className="h-4 w-4 text-amber-600" />,
-            count: request.filter((r) => r.status === "PENDING" || r.status === "PARTIALLY_APPROVED").length,
+            count: pendingCount,
             label: "Pending",
             bgColor: "bg-amber-50",
           },
           {
             icon: <CheckCircle className="h-4 w-4 text-emerald-600" />,
-            count: request.filter((r) => r.status === "APPROVED").length,
+            count: approvedCount,
             label: "Approved",
             bgColor: "bg-emerald-50",
           },
           {
             icon: <XCircle className="h-4 w-4 text-red-600" />,
-            count: request.filter((r) => r.status === "REJECTED" || r.status === "CANCELLED").length,
+            count: rejectedCount,
             label: "Rejected",
             bgColor: "bg-red-50",
           },
         ]}
       />
 
+      {/* Table */}
       {isLoading ? (
         <Card>
           <CardContent className="py-16 text-center">
@@ -113,16 +128,16 @@ const OvertimeRequestPage = () => {
             </div>
           </CardContent>
         </Card>
-      ) : error ? (
+      ) : isError ? (
         <Card>
           <CardContent className="py-16 text-center">
-            <p className="text-muted-foreground">{error}</p>
-            <Button onClick={fetchRequest} className="mt-4">
+            <p className="text-muted-foreground">{error?.message || "Gagal memuat data"}</p>
+            <Button onClick={() => refetch()} className="mt-4">
               Coba Lagi
             </Button>
           </CardContent>
         </Card>
-      ) : request.length === 0 ? (
+      ) : requests.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center">
             <p className="text-muted-foreground">No overtime requests yet. Create your first request!</p>
@@ -142,7 +157,7 @@ const OvertimeRequestPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {request.map((item) => (
+                  {requests.map((item) => (
                     <TableRow
                       key={item.id}
                       className="cursor-pointer hover:bg-gray-50"
@@ -158,9 +173,10 @@ const OvertimeRequestPage = () => {
                               variant="destructive"
                               size="sm"
                               onClick={(e) => handleDeleteClick(e, item)}
+                              disabled={cancelMutation.isPending}
                             >
                               <Trash2 className="h-3 w-3 mr-1" />
-                              Cancel
+                              {cancelMutation.isPending ? "..." : "Cancel"}
                             </Button>
                           </div>
                         )}
@@ -174,10 +190,11 @@ const OvertimeRequestPage = () => {
         </Card>
       )}
 
+      {/* Modals */}
       <CreateRequestModal
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
-        onSuccess={fetchRequest}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["requests"] })}
       />
 
       <DetailRequestModal
@@ -193,7 +210,7 @@ const OvertimeRequestPage = () => {
         actionType="cancel"
         item={deleteModal.request}
         onConfirm={handleConfirmDelete}
-        isLoading={isLoading}
+        isLoading={cancelMutation.isPending}
       />
     </div>
   )
