@@ -43,8 +43,8 @@ const LoginPage = () => {
 
     try {
       const result = await login(username, password)
-      const { token, name, roleNames } = result.data
-      setAuth(token, { name, roleNames })
+      const { token, name, roleNames, username: resUsername } = result.data
+      setAuth(token, { name, roleNames, username: resUsername || username })
       navigate("/dashboard")
     } catch (err) {
       const message = err.response?.data?.message || "Username atau password salah"
@@ -95,12 +95,12 @@ const LoginPage = () => {
         {isLoading ? "Logging in..." : "Login"}
       </Button>
       <p>password123
-        admin@company.com<br></br>
-andi.pratama@company.com
-citra.dewi@company.com
-dewi.lestari@company.com
-erlangga.hadi@company.com
-fitriani.putri@company.com</p>
+        admin<br></br>
+        andi.pratama@company.com
+        citra.dewi@company.com
+        dewi.lestari@company.com
+        erlangga.hadi@company.com
+        fitriani.putri@company.com</p>
     </form>
   )
 }

@@ -1,4 +1,5 @@
   import { create } from "zustand"
+  import { queryClient } from "@/lib/queryClient"
 
   const useAuthStore = create((set) => ({
     token: localStorage.getItem("token"),
@@ -18,6 +19,8 @@
     },
 
     setAuth: (token, user) => {
+      // Bersihkan seluruh cache React Query saat ganti sesi / login baru
+      queryClient.clear()
       localStorage.setItem("token", token)
       localStorage.setItem("user", JSON.stringify(user))
       set({ token, user })
@@ -29,6 +32,8 @@
     },
 
     logout: () => {
+      // Bersihkan seluruh cache React Query saat logout
+      queryClient.clear()
       localStorage.removeItem("token")
       localStorage.removeItem("user")
       set({ token: null, user: null, sessionExpired: false })

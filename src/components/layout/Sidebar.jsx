@@ -1,15 +1,17 @@
 import { useState } from "react"
 import { NavLink, useNavigate } from "react-router-dom"
-import { LayoutDashboard, FileText, CheckCircle, LogOut, Users, X } from "lucide-react"
+import { LayoutDashboard, FileText, CheckCircle, LogOut, Users, User, X } from "lucide-react"
 import useAuthStore from "@/store/authStore"
 import { cn } from "@/lib/utils"
 import ActionModal from "@/components/modals/common/ActionModal"
+import ProfileModal from "@/components/modals/user/ProfileModal"
 
 const Sidebar = ({ isOpen, onClose }) => {
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
 
   const [logoutModal, setLogoutModal] = useState({ open: false })
+  const [profileModal, setProfileModal] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -88,12 +90,15 @@ const Sidebar = ({ isOpen, onClose }) => {
 
         <div className="p-4 border-t">
           <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
+            <button
+              onClick={() => setProfileModal(true)}
+              className="flex-1 min-w-0 text-left hover:bg-muted rounded-lg p-1 transition-colors"
+            >
               <p className="text-sm font-medium truncate">{user?.name || "Guest"}</p>
               <p className="text-xs text-muted-foreground truncate">
                 {user?.roleNames?.join(", ") || ""}
               </p>
-            </div>
+            </button>
             <button
               onClick={() => setLogoutModal({ open: true })}
               className="p-2 text-muted-foreground hover:text-destructive transition-colors"
@@ -103,6 +108,12 @@ const Sidebar = ({ isOpen, onClose }) => {
           </div>
         </div>
       </aside>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        open={profileModal}
+        onOpenChange={setProfileModal}
+      />
 
       {/* Logout Modal */}
       <ActionModal

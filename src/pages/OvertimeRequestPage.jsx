@@ -171,12 +171,12 @@ const OvertimeRequestPage = () => {
                           <div className="flex justify-center">
                             <Button
                               variant="destructive"
-                              size="sm"
+                              size="icon-sm"
+                              title="Cancel Request"
                               onClick={(e) => handleDeleteClick(e, item)}
                               disabled={cancelMutation.isPending}
                             >
-                              <Trash2 className="h-3 w-3 mr-1" />
-                              {cancelMutation.isPending ? "..." : "Cancel"}
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         )}

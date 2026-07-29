@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Plus, Trash2, Loader2, Users, UserCheck, UserX } from "lucide-react"
+import { Plus, Trash2, Loader2, Users, UserCheck, UserX, Pencil, RotateCcw } from "lucide-react"
 import { getAllUsers, deleteUser, restoreUser } from "@/services/user"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import ActionModal from "@/components/modals/common/ActionModal"
+import CreateUserModal from "@/components/modals/user/CreateUserModal"
+import EditUserModal from "@/components/modals/user/EditUserModal"
 import StatsCard from "@/components/ui/StatsCard"
 import { toast } from "sonner"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
@@ -42,6 +44,16 @@ const UserManagementPage = () => {
     user: null,
   })
 
+  const [editModal, setEditModal] = useState({
+    open: false,
+    user: null,
+  })
+
+  const handleEditClick = (e, user) => {
+    e.stopPropagation()
+    setEditModal({ open: true, user })
+  }
+
   const handleDeleteClick = (e, user) => {
     e.stopPropagation()
     setDeleteModal({ open: true, user })
@@ -58,7 +70,7 @@ const UserManagementPage = () => {
       await deleteUser(user.id)
       toast.success("User berhasil dihapus!")
       setDeleteModal({ open: false, user: null }) 
-      refetch()
+      queryClient.invalidateQueries({ queryKey: ["users"] })
     } catch (err) {
       const message = err.response?.data?.message || "Gagal menghapus user"
       toast.error(message)
@@ -71,7 +83,7 @@ const UserManagementPage = () => {
       await restoreUser(user.id)
       toast.success("User berhasil direstore!")
       setRestoreModal({ open: false, user: null })
-      refetch()  
+      queryClient.invalidateQueries({ queryKey: ["users"] })  
     } catch (err) {
       const message = err.response?.data?.message || "Gagal merestore user"
       toast.error(message)
@@ -191,31 +203,30 @@ const UserManagementPage = () => {
                             <>
                               <Button
                                 variant="outline"
-                                size="sm"
-                                className="h-8 px-3"
-                                // onClick={() => handleEdit(item)}
+                                size="icon-sm"
+                                title="Edit"
+                                onClick={(e) => handleEditClick(e, item)}
                               >
-                                Edit
+                                <Pencil className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="destructive"
-                                size="sm"
-                                className="h-8 px-3"
+                                size="icon-sm"
+                                title="Delete"
                                 onClick={(e) => handleDeleteClick(e, item)}
                               >
-                                <Trash2 className="h-3 w-3 mr-1" />
-                                Delete
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </>
                           ) : (
                             <Button
                               variant="default"
-                              size="sm"
-                              className="bg-blue-500 hover:bg-blue-600 text-white h-8 px-3"
+                              size="icon-sm"
+                              title="Restore"
+                              className="bg-blue-500 hover:bg-blue-600 text-white"
                               onClick={(e) => handleRestoreClick(e, item)}
                             >
-                              <UserCheck className="h-3 w-3 mr-1" />
-                              Restore
+                              <RotateCcw className="h-4 w-4" />
                             </Button>
                           )}
                         </div>
@@ -230,6 +241,19 @@ const UserManagementPage = () => {
       )}
 
       {/* Modals */}
+      <CreateUserModal
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["users"] })}
+      />
+
+      <EditUserModal
+        open={editModal.open}
+        onOpenChange={(open) => setEditModal({ ...editModal, open })}
+        user={editModal.user}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["users"] })}
+      />
+
       <ActionModal
         open={deleteModal.open}
         onOpenChange={(open) => setDeleteModal({ ...deleteModal, open })}

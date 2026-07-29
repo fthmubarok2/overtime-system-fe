@@ -1,7 +1,17 @@
-import api from "./api";
+import api from "./api"
 
 export const register = async (data) => {
   const response = await api.post("/users/register", data)
+  return response.data
+}
+
+export const getMyProfile = async () => {
+  const response = await api.get("/users/my-account")
+  return response.data
+}
+
+export const updateMyProfile = async (data) => {
+  const response = await api.put("/users/profile-update", data)
   return response.data
 }
 
@@ -15,7 +25,7 @@ export const getUserById = async (id) => {
   return response.data
 }
 
-export const updateUser = async (id, data) => {
+export const updateUserByAdmin = async ({ id, ...data }) => {
   const response = await api.put(`/users/${id}`, data)
   return response.data
 }
