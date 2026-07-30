@@ -58,7 +58,7 @@ const OvertimeApprovalPage = () => {
   } = useQuery({
     queryKey: ["approval-requests", user?.roleNames],
     queryFn: fetchApprovalRequests,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
     gcTime: 1000 * 60 * 10,
     refetchOnWindowFocus: false,
     enabled: !!user,
@@ -74,6 +74,7 @@ const OvertimeApprovalPage = () => {
       )
       setActionModal({ open: false, type: "approve", request: null })
       queryClient.invalidateQueries({ queryKey: ["approval-requests"] })
+      queryClient.invalidateQueries({ queryKey: ["detail-request"] })
     },
     onError: (err) => {
       toast.error(err.response?.data?.message || "Gagal memproses approval")

@@ -18,7 +18,7 @@ export const useMyProfile = (enabled = true) => {
     queryKey: ["my-profile"],
     queryFn: getMyProfile,
     enabled: enabled && Boolean(token),
-    staleTime: 1000 * 60 * 10, // Data fresh selama 10 menit
+    staleTime: 1000 * 60 * 30, // Profil diset fresh selama 30 menit
   })
 
   // Update profil mutation

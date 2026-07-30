@@ -48,6 +48,7 @@ const OvertimeRequestPage = () => {
       toast.success("Request berhasil dibatalkan!")
       setDeleteModal({ open: false, request: null })
       queryClient.invalidateQueries({ queryKey: ["requests"] })
+      queryClient.invalidateQueries({ queryKey: ["detail-request"] })
     },
     onError: (err) => {
       const message = err.response?.data?.message || "Gagal membatalkan request"
